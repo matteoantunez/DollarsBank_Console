@@ -1,11 +1,15 @@
 package com.dollarsbank.utility;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
 
+import com.dollarsbank.connection.SQLConnection;
 import com.dollarsbank.model.Account;
 import com.dollarsbank.model.Customer;
 import com.dollarsbank.model.SavingsAccount;
@@ -96,12 +100,23 @@ public class ConsolePrinterUtility {
 		Queue<String> transactions = new LinkedList<>();
 		transactions.add("Initial Deposit Amount in account " + username + "\nBalance - $" + deposit + " as of " + LocalDate.now());
 		
-		// Create Customer & Account
+		// Create Customer & Account -- Persistence
 		Customer customer = new Customer(firstLast[0], firstLast[1], username, password, state, phoneNumber[0], phoneNumber[1],  phoneNumber[2]);
 		Account account = new Account(deposit, transactions, customer);
 		SavingsAccount sAccount = new SavingsAccount(customer);
 		customer.setChecking(account);
 		customer.setSavings(sAccount);
+		
+		// Insert data into database
+		try (Connection conn = SQLConnection.getConnection()){
+		
+			Statement stmt = conn.createStatement();
+			
+			stmt.executeUpdate("INSERT INTO USERS VALUES (")
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		System.out.println();
 		// Return customer
