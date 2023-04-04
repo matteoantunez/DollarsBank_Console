@@ -6,4 +6,5 @@
  *
  */
 module DollarsBank_Console {
+	requires java.sql;
 }
