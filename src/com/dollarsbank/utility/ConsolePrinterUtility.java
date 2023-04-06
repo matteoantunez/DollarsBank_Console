@@ -1,8 +1,9 @@
 package com.dollarsbank.utility;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -107,16 +108,48 @@ public class ConsolePrinterUtility {
 		customer.setChecking(account);
 		customer.setSavings(sAccount);
 		
-		// Insert data into database
+		// Insert data into database to create User
 		try (Connection conn = SQLConnection.getConnection()){
 		
-			Statement stmt = conn.createStatement();
+			PreparedStatement stmt = conn.prepareStatement("INSERT INTO USERS VALUES (1, ?, ?, ?, ?, ?, ?, ?)");
+			stmt.setString(1, firstLast[0]);
+			stmt.setString(2, firstLast[1]);
+			stmt.setString(3, username);
+			stmt.setString(4, password);
+			stmt.setString(5, state);
+			stmt.setInt(6, phoneNumber[0]);
+			stmt.setInt(7, phoneNumber[1]);
+			stmt.setInt(8, phoneNumber[2]);
 			
-			stmt.executeUpdate("INSERT INTO USERS VALUES (")
+			stmt.execute();
+			
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
+		// Insert data into database to create Checking Account
+		try (Connection conn = SQLConnection.getConnection()){
+		
+			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from USER where username = ?");
+			gstmt.setString(1, username);
+			ResultSet rs = gstmt.executeQuery();
+			int id = 0;
+			
+			while(rs.next()) {
+				id = rs.getInt(1);			
+			}
+			
+			PreparedStatement stmt = conn.prepareStatement("INSERT INTO Checking_Account VALUES (?, 1, ?)");
+			stmt.setInt(1, id);
+			stmt.setFloat(2, deposit);
+			stmt.execute();
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
 		
 		System.out.println();
 		// Return customer
