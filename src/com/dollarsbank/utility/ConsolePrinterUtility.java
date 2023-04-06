@@ -99,7 +99,8 @@ public class ConsolePrinterUtility {
 		
 		// Initiate Queue for transactions
 		Queue<String> transactions = new LinkedList<>();
-		transactions.add("Initial Deposit Amount in account " + username + "\nBalance - $" + deposit + " as of " + LocalDate.now());
+		String trans = "Initial Deposit Amount in account " + username + "\nBalance - $" + deposit + " as of " + LocalDate.now();
+		transactions.add(trans);
 		
 		// Create Customer & Account -- Persistence
 		Customer customer = new Customer(firstLast[0], firstLast[1], username, password, state, phoneNumber[0], phoneNumber[1],  phoneNumber[2]);
@@ -128,7 +129,7 @@ public class ConsolePrinterUtility {
 			e.printStackTrace();
 		}
 		
-		// Insert data into database to create Checking Account
+		// Insert data into database to create Checking/Savings Account
 		try (Connection conn = SQLConnection.getConnection()){
 		
 			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from USER where username = ?");
@@ -145,6 +146,18 @@ public class ConsolePrinterUtility {
 			stmt.setFloat(2, deposit);
 			stmt.execute();
 			
+			gstmt = conn.prepareStatement("Select account_id from Checking_Account WHERE customer_id = ?");
+			gstmt.setInt(1, id);
+			rs = gstmt.executeQuery();
+			
+			while(rs.next()) {
+				id = rs.getInt(1);
+			}
+			
+			stmt = conn.prepareStatement("INSERT INTO Transactions_Checking Values (1, ?, ?, null, ?");
+			stmt.setInt(1, id);
+			stmt.setString(2, trans);
+			stmt.setFloat(3, deposit);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -156,6 +169,8 @@ public class ConsolePrinterUtility {
 		return customer;
 	}
 	
+	
+	// Resume Here
 	public Customer login( ArrayList<Customer> customers) {
 		//  Prints out Header
 		System.out.println(colors.getAnsiBlue() + "+---------------------+" + colors.getAnsiReset());
