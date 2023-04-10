@@ -56,7 +56,7 @@ public class ConsolePrinterUtility {
 	}
 
 	// Prints and collects the New Account information and should return the account and user
-	public Customer createAccount() {
+	public Customer createAccount(Connection conn) {
 		
 		//  Prints out Header
 		System.out.println(colors.getAnsiBlue() + "+-------------------------------+" + colors.getAnsiReset());
@@ -110,7 +110,7 @@ public class ConsolePrinterUtility {
 		customer.setSavings(sAccount);
 		
 		// Insert data into database to create User
-		try (Connection conn = SQLConnection.getConnection()){
+		try{
 		
 			PreparedStatement stmt = conn.prepareStatement("INSERT INTO CUSTOMERS (first_name, last_name, username, psword, state, area_code, local_code, personal_digits) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 			stmt.setString(1, firstLast[0]);
@@ -153,7 +153,7 @@ public class ConsolePrinterUtility {
 			stmt.setFloat(3, deposit);
 			
 		} catch (SQLException e) {
-			e.printStackTrace();
+			System.out.println("Username already taken, please try again.");
 		}
 		
 		
@@ -166,7 +166,7 @@ public class ConsolePrinterUtility {
 	
 	
 	// Resume Here
-	public Customer login( ArrayList<Customer> customers) {
+	public Customer login( ArrayList<Customer> customers, Connection conn) {
 		//  Prints out Header
 		System.out.println(colors.getAnsiBlue() + "+---------------------+" + colors.getAnsiReset());
 		System.out.println(colors.getAnsiBlue() + "| Enter Login Details |" + colors.getAnsiReset());
@@ -182,6 +182,25 @@ public class ConsolePrinterUtility {
 			String password = scan.nextLine();
 			
 			System.out.println();
+			
+			try {
+				PreparedStatement gstmt = conn.prepareStatement("Select customer_id from CUSTOMERS where username = ? and psword = ?");
+				gstmt.setString(1, username);
+				gstmt.setString(2, password);
+				ResultSet rs = gstmt.executeQuery();
+				
+				int id = 0;
+				
+				while(rs.next()) {
+					id = rs.getInt(1);			
+				}
+			} catch (SQLException e) {
+				System.out.println("Customer not in database, please try again.");
+				e.printStackTrace();
+				
+			}
+			
+		
 			for (int x  = 0; x < customers.size(); x++) {
 				Customer cust = customers.get(x);
 				if (cust.getUsername().contentEquals(username) && cust.getPassword().contentEquals(password)){
@@ -189,11 +208,12 @@ public class ConsolePrinterUtility {
 				}
 			}
 			
+			
 			System.out.println(colors.getAnsiRed() + "Invalid Input or Login Credentials. Please try Again\n" + colors.getAnsiReset());
 		}
 	}
 	
-	public void menu( Customer cus) {
+	public void menu( Customer cus, Connection conn) {
 		//  Loop until logged out
 		int res = 1;
 		while (res != 6) {
@@ -227,16 +247,16 @@ public class ConsolePrinterUtility {
 			// Menu Options
 			switch (res) {
 				case 1:
-					cus = deposit(cus);
+					cus = deposit(cus, conn);
 					break;
 				case 2:
-					cus = withdraw(cus);
+					cus = withdraw(cus, conn);
 					break;
 				case 3: 
-					cus = transfer(cus);
+					cus = transfer(cus, conn);
 					break;
 				case 4:
-					recent(cus);
+					recent(cus, conn);
 					break;
 				case 5:
 					info(cus);
@@ -253,7 +273,7 @@ public class ConsolePrinterUtility {
 	}
 	
 
-	public Customer deposit(Customer cus) {
+	public Customer deposit(Customer cus, Connection conn) {
 		// Print out prompt for deposit
 		System.out.println(colors.getAnsiBlue() + "+--------------+" + colors.getAnsiReset());
 		System.out.println(colors.getAnsiBlue() + "| DEPOSIT Menu |" + colors.getAnsiReset());
@@ -267,14 +287,57 @@ public class ConsolePrinterUtility {
 		// Update Deposit
 		cus.getChecking().setBalance(cus.getChecking().getBalance() + deposit);
 		
+		try {
+			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from CUSTOMERS where username = ? and psword = ?");
+			gstmt.setString(1, cus.getUsername());
+			gstmt.setString(2, cus.getPassword());
+			ResultSet rs = gstmt.executeQuery();
+			
+			int id = 0;
+			
+			while(rs.next()) {
+				id = rs.getInt(1);			
+			}
+			
+			gstmt = conn.prepareStatement("Update Checking_Account SET balance = ? where customer_id = ?");
+			gstmt.setFloat(1, cus.getChecking().getBalance());
+			gstmt.setInt(2, id);
+			
+		} catch (SQLException e) {
+			System.out.println("Error Updating Checking Balance, please try again.");
+		}
+		
+		
 		// Add deposit to Account
 		cus.getChecking().getTransactions().add("Deposit of " + deposit  + " for " + cus.getUsername() + "\nBalance - $" + cus.getChecking().getBalance() + " as of " + LocalDate.now() );
 		
 		
+		try {
+			PreparedStatement gstmt = conn.prepareStatement("Select account_id from CUSTOMERS, Checking_Account where username = ? and psword = ?");
+			gstmt.setString(1, cus.getUsername());
+			gstmt.setString(2, cus.getPassword());
+			ResultSet rs = gstmt.executeQuery();
+			
+			int id = 0;
+			
+			while(rs.next()) {
+				id = rs.getInt(1);
+			}
+			
+			gstmt = conn.prepareStatement("Update Transactions_Checking SET transaction_description = ?, credit = ? where account_id = ?");
+			gstmt.setString(1, "Deposit of " + deposit  + " for " + cus.getUsername() + "\nBalance - $" + cus.getChecking().getBalance() + " as of " + LocalDate.now() );
+			gstmt.setFloat(2, deposit);
+			gstmt.setInt(3, id);
+			
+			
+		} catch (SQLException e) {
+			System.out.println("Error Updating Checking_Transaction, please try again.");
+		}
+		
 		return cus;
 	}
 	
-	public Customer withdraw(Customer cus) {
+	public Customer withdraw(Customer cus, Connection conn) {
 		// Print out prompt for withdraw
 		System.out.println(colors.getAnsiBlue() + "+---------------+" + colors.getAnsiReset());
 		System.out.println(colors.getAnsiBlue() + "| WITHDRAW Menu |" + colors.getAnsiReset());
@@ -287,15 +350,55 @@ public class ConsolePrinterUtility {
 		
 		// Update Withdraw
 		cus.getChecking().setBalance(cus.getChecking().getBalance() - withdraw);
+		try {
+			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from CUSTOMERS where username = ? and psword = ?");
+			gstmt.setString(1, cus.getUsername());
+			gstmt.setString(2, cus.getPassword());
+			ResultSet rs = gstmt.executeQuery();
+			
+			int id = 0;
+			
+			while(rs.next()) {
+				id = rs.getInt(1);			
+			}
+			
+			gstmt = conn.prepareStatement("Update Checking_Account SET balance = ? where customer_id = ?");
+			gstmt.setFloat(1, cus.getChecking().getBalance());
+			gstmt.setInt(2, id);
+			
+		} catch (SQLException e) {
+			System.out.println("Error Updating Checking Balance, please try again.");
+		}
+		
 		
 		// Add withdraw to Account
 		cus.getChecking().getTransactions().add("Withdraw of " + withdraw  + " for " + cus.getUsername() + "\nBalance - $" + cus.getChecking().getBalance() + " as of " + LocalDate.now() );
-		
+		try {
+			PreparedStatement gstmt = conn.prepareStatement("Select account_id from CUSTOMERS, Checking_Account where username = ? and psword = ?");
+			gstmt.setString(1, cus.getUsername());
+			gstmt.setString(2, cus.getPassword());
+			ResultSet rs = gstmt.executeQuery();
+			
+			int id = 0;
+			
+			while(rs.next()) {
+				id = rs.getInt(1);
+			}
+			
+			gstmt = conn.prepareStatement("Update Transactions_Checking SET transaction_description = ?, debit = ? where account_id = ?");
+			gstmt.setString(1, "Withdraw of " + withdraw  + " for " + cus.getUsername() + "\nBalance - $" + cus.getChecking().getBalance() + " as of " + LocalDate.now() );
+			gstmt.setFloat(2, withdraw);
+			gstmt.setInt(3, id);
+			
+			
+		} catch (SQLException e) {
+			System.out.println("Error Updating Checking_Transaction, please try again.");
+		}
 		
 		return cus;
 	}
 	
-	public Customer transfer(Customer cus) {
+	public Customer transfer(Customer cus, Connection conn) {
 		// Print out prompt for transfer
 		System.out.println(colors.getAnsiBlue() + "+---------------+" + colors.getAnsiReset());
 		System.out.println(colors.getAnsiBlue() + "| TRANSFER Menu |" + colors.getAnsiReset());
@@ -377,7 +480,7 @@ public class ConsolePrinterUtility {
 		}
 	}
 	
-	public void recent(Customer cus) {
+	public void recent(Customer cus, Connection conn) {
 		// Print out prompt for transfer
 		System.out.println(colors.getAnsiBlue() + "+---------------------+" + colors.getAnsiReset());
 		System.out.println(colors.getAnsiBlue() + "| RECENT Transactions |" + colors.getAnsiReset());
