@@ -112,7 +112,7 @@ public class ConsolePrinterUtility {
 		// Insert data into database to create User
 		try (Connection conn = SQLConnection.getConnection()){
 		
-			PreparedStatement stmt = conn.prepareStatement("INSERT INTO USERS VALUES (1, ?, ?, ?, ?, ?, ?, ?)");
+			PreparedStatement stmt = conn.prepareStatement("INSERT INTO CUSTOMERS (first_name, last_name, username, psword, state, area_code, local_code, personal_digits) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 			stmt.setString(1, firstLast[0]);
 			stmt.setString(2, firstLast[1]);
 			stmt.setString(3, username);
@@ -124,24 +124,17 @@ public class ConsolePrinterUtility {
 			
 			stmt.execute();
 			
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		// Insert data into database to create Checking/Savings Account
-		try (Connection conn = SQLConnection.getConnection()){
-		
-			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from USER where username = ?");
+			PreparedStatement gstmt = conn.prepareStatement("Select customer_id from CUSTOMERS where username = ?");
 			gstmt.setString(1, username);
 			ResultSet rs = gstmt.executeQuery();
+			
 			int id = 0;
 			
 			while(rs.next()) {
 				id = rs.getInt(1);			
 			}
 			
-			PreparedStatement stmt = conn.prepareStatement("INSERT INTO Checking_Account VALUES (?, 1, ?)");
+			stmt = conn.prepareStatement("INSERT INTO Checking_Account (customer_id, balance) VALUES (?, ?)");
 			stmt.setInt(1, id);
 			stmt.setFloat(2, deposit);
 			stmt.execute();
@@ -154,7 +147,7 @@ public class ConsolePrinterUtility {
 				id = rs.getInt(1);
 			}
 			
-			stmt = conn.prepareStatement("INSERT INTO Transactions_Checking Values (1, ?, ?, null, ?");
+			stmt = conn.prepareStatement("INSERT INTO Transactions_Checking (account_id, transaction_description, debit, credit) Values (1, ?, ?, NULL, ?");
 			stmt.setInt(1, id);
 			stmt.setString(2, trans);
 			stmt.setFloat(3, deposit);
@@ -162,6 +155,8 @@ public class ConsolePrinterUtility {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
+		
 		
 		
 		System.out.println();
